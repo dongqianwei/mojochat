@@ -1,0 +1,43 @@
+% layout 'layout';
+
+<body>
+
+
+  <div class="container">
+  	<h3>欢迎使用mojochat, <%= $name %>童鞋,你可以开始聊天喽~ </h3>
+    <label>当前在线：</label>
+    <p id="online_p"></p>
+    <textarea rows="25" class="col-md-8" id="record"></textarea>
+    <textarea class="col-md-8" id="msg"></textarea>
+    <div class="col-md-8">
+		<button class="btn btn-default" id="send">发送</button>
+		<button class="btn btn-default" id="clr">清空</button>
+	</div>
+  </div>
+
+
+</body>
+
+%= javascript begin
+
+function refresh() {
+	$.getJSON('/serv', function(data) {
+	    $("#online_p").text(data['name']);
+	    var $record = $("#record").val();
+	    $("#record").val($record + data['msg']);
+	    setTimeout('refresh()', 5000);
+	});
+}
+
+setTimeout('refresh()', 5000);
+
+function submit_msg(){
+	$.getJSON('/msg',{msg: $("#msg").val()});
+	$("#msg").val('');
+}
+
+$("#send").click(submit_msg);
+
+$("#clr").click(function(){$("#record").val('')});
+
+% end

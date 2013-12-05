@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>mojochat</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css"></link>
+  %= javascript '/js/jquery.js'
+  %= javascript '/js/bootstrap.min.js'
+</head>
+<%= content %>
+</html>

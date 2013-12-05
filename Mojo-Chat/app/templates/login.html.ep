@@ -1,0 +1,31 @@
+% layout 'layout';
+
+<body>
+
+<div class="container">
+<h3>欢迎使用mojochat</h3>
+
+<form id="nc_form" role="form" class="form-inline" action="/chat" method="get">
+  <div class="form-group">
+    <input class="form-control" id="name" name="name" placeholder="输入昵称">
+  </div>
+</form>
+  <button id="submit_but" class="btn btn-default">登陆</button>
+</div>
+
+
+</body>
+
+%= javascript begin
+
+  function check_and_submit() {
+    if($("#name").val().match(/^\s*$/)) {
+      alert("昵称不能为空");
+    }
+    else {
+      $("#nc_form").submit();
+    }
+  }
+
+  $("#submit_but").click(check_and_submit);
+% end
