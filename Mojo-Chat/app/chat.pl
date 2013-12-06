@@ -58,6 +58,16 @@ get '/msg' => sub {
 	$self->render(json => 'succ');
 };
 
+get 'query' => sub {
+    my $self = shift;
+    my $query = $self->param('query');
+    my $value = $self->param('value');
+    if ($query eq 'name') {
+    	my $name_exist = exists $online{$value};
+    	$self->render(json => {exists => $name_exist});
+    }
+};
+
 post '/cmd' => sub {
 	my $self = shift;
 	my $cmd = $self->param('cmd');

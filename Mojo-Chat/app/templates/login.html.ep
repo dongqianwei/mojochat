@@ -23,7 +23,16 @@
       alert("昵称不能为空");
     }
     else {
-      $("#nc_form").submit();
+      $.getJSON('/query',{query:'name', value: $("#name").val()}, 
+      function(data){
+        if (!data['exists']) {
+          $("#nc_form").submit();
+        }
+        else {
+          alert('该昵称已存在咯');
+        }
+      });
+      
     }
   }
 
