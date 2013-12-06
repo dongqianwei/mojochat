@@ -42,8 +42,14 @@ function submit_msg(){
 	$("#msg").val('');
 }
 
+function quit() {
+	$.post('/cmd', {cmd : 'quit'}, function(){window.location = '/';});
+}
+
 $("#send").click(submit_msg);
 
 $("#clr").click(function(){$("#record").val('')});
+
+$("#leave").click(quit);
 
 % end

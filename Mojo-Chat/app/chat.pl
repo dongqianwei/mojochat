@@ -58,6 +58,19 @@ get '/msg' => sub {
 	$self->render(json => 'succ');
 };
 
+post '/cmd' => sub {
+	my $self = shift;
+	my $cmd = $self->param('cmd');
+	if ($cmd eq 'quit') {
+		my $name = $self->session('name');
+		#clear session and user data
+		$self->session(expires => 1);
+  		delete $online_rec{$name};
+  		delete $online{$name};
+  		$self->render(json => 'succ');
+	}
+};
+
 # 定时减计数
 sub refresh {
   for my $name (keys %online_rec) {
