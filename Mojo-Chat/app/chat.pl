@@ -4,7 +4,13 @@ use Mojolicious::Lite;
 my %online;
 my %online_rec;
 
-get '/' => 'login';
+get '/' => sub {
+  my $self = shift;
+  if (defined $self->session('name')) {
+  	my $name = $self->session('name');
+  	$self->redirect_to('/chat?name=' . $name);
+  }
+} => 'login';
 
 get '/chat' => sub {
   my $self = shift;
@@ -17,8 +23,13 @@ get '/chat' => sub {
   	#init 计数
   	$online_rec{$name} = 5;
   }
-  else {
-    $name = $self->session('name');
+  elsif ($name ne $self->session('name')) {
+  	#session exists
+  	#name changed
+  	my $ori_name = $self->session('name');
+    $self->session(name => $name);
+    $online{$name} = delete $online{$ori_name};
+    $online_rec{$name} = delete $online_rec{$ori_name};
   }
   $self->stash(name => $name);
 };

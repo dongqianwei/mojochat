@@ -12,6 +12,7 @@
     <div class="col-md-8">
 		<button class="btn btn-default" id="send">发送</button>
 		<button class="btn btn-default" id="clr">清空</button>
+		<button class="btn btn-default" id="leave">退出聊天</button>
 	</div>
   </div>
 
@@ -32,6 +33,11 @@ function refresh() {
 setTimeout('refresh()', 5000);
 
 function submit_msg(){
+    if ($("#msg").val().match(/^$/)) {
+      alert('消息不能为空咯');
+      return;
+    }
+
 	$.getJSON('/msg',{msg: $("#msg").val()});
 	$("#msg").val('');
 }
