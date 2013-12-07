@@ -21,16 +21,20 @@
 
 %= javascript begin
 
-function refresh() {
-	$.getJSON('/serv', function(data) {
-	    $("#online_p").text(data['name']);
-	    var $record = $("#record").val();
-	    $("#record").val($record + data['msg']);
-	    setTimeout('refresh()', 5000);
-	});
-}
-
-setTimeout('refresh()', 5000);
+(function poll() {
+  $.ajax({
+    type: 'GET',
+    cache: false,
+    url: '/serv',
+    success: function(data) {
+            $("#online_p").text(data['name']);
+            var $record = $("#record").val();
+            $("#record").val($record + data['msg']);
+		    },
+    complete: poll,
+    timeout: 60000
+  });
+})();
 
 function submit_msg(){
     if ($("#msg").val().match(/^$/)) {

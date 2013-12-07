@@ -1,8 +1,10 @@
 use v5.16;
 use Mojolicious::Lite;
+use Sync;
 
 my %online;
 my %online_rec;
+my $sync = Sync->new;
 
 get '/' => sub {
   my $self = shift;
@@ -21,7 +23,9 @@ get '/chat' => sub {
   	#init msg queue
   	$online{$name} = {msgq => []};
   	#init 计数
-  	$online_rec{$name} = 5;
+  	$online_rec{$name} = 6;
+    #触发同步事件
+    $sync->trigger;
   }
   elsif ($name ne $self->session('name')) {
   	#session exists
@@ -30,6 +34,8 @@ get '/chat' => sub {
     $self->session(name => $name);
     $online{$name} = delete $online{$ori_name};
     $online_rec{$name} = delete $online_rec{$ori_name};
+    #触发同步事件
+    $sync->trigger;
   }
   $self->stash(name => $name);
 };
@@ -38,13 +44,21 @@ get 'serv' => sub {
 	my $self = shift;
 	my $name = $self->session('name');
 	#刷新计数
-	$online_rec{$name} = 5;
-	#获取在线人数
-	my @names = keys %online;
-	#将消息队列刷新
-    my @msgs = @{$online{$name}{msgq} // []};
-    $online{$name}{msgq} = [];
-	$self->render(json => {name => "@names", msg => "@msgs"});
+	$online_rec{$name} = 6;
+    $self->render_later;
+
+    #注册事件，执行一次后销毁
+    my $id; $id = $sync->once(sync => sub {
+        app->log->debug("an callback called");
+        #获取在线人数
+        my @names = keys %online;
+        #将消息队列刷新
+        my @msgs = @{$online{$name}{msgq} // []};
+        $online{$name}{msgq} = [];
+        eval {
+            $self->render(json => {name => "@names", msg => "@msgs"});
+        }
+    });
 };
 
 get '/msg' => sub {
@@ -55,6 +69,8 @@ get '/msg' => sub {
 	for my $name (keys %online) {
 		push @{$online{$name}{msgq}}, $msg;
 	}
+    #触发同步事件
+    $sync->trigger;
 	$self->render(json => 'succ');
 };
 
@@ -90,9 +106,12 @@ sub refresh {
   		delete $online{$name};
   	}
   }
-  Mojo::IOLoop->timer(10 => __SUB__);
 }
 
-Mojo::IOLoop->timer(10 => \&refresh);
+#十秒钟减一次计数
+Mojo::IOLoop->recurring(10 => \&refresh);
+
+#每三十秒触发一次同步事件
+Mojo::IOLoop->recurring(5 => sub {app->log->debug('sync once');$sync->trigger});
 
 app->start;
