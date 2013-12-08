@@ -45,11 +45,9 @@ get 'serv' => sub {
 	my $name = $self->session('name');
 	#刷新计数
 	$online_rec{$name} = 6;
-    $self->render_later;
 
-    #注册事件，执行一次后销毁
-    my $id; $id = $sync->once(sync => sub {
-        app->log->debug("an callback called");
+    # sync
+    if ($self->param('sync')) {
         #获取在线人数
         my @names = keys %online;
         #将消息队列刷新
@@ -58,7 +56,24 @@ get 'serv' => sub {
         eval {
             $self->render(json => {name => "@names", msg => "@msgs"});
         }
-    });
+    }
+    # async
+    else {
+        $self->render_later;
+
+        #注册事件，执行一次后销毁
+        my $id; $id = $sync->once(sync => sub {
+            app->log->debug("an callback called");
+            #获取在线人数
+            my @names = keys %online;
+            #将消息队列刷新
+            my @msgs = @{$online{$name}{msgq} // []};
+            $online{$name}{msgq} = [];
+            eval {
+                $self->render(json => {name => "@names", msg => "@msgs"});
+            }
+        });
+    }
 };
 
 get '/msg' => sub {
@@ -111,7 +126,7 @@ sub refresh {
 #十秒钟减一次计数
 Mojo::IOLoop->recurring(10 => \&refresh);
 
-#每三十秒触发一次同步事件
-Mojo::IOLoop->recurring(5 => sub {app->log->debug('sync once');$sync->trigger});
+#每10触发一次同步事件
+Mojo::IOLoop->recurring(10 => sub {app->log->debug('sync once');$sync->trigger});
 
 app->start;

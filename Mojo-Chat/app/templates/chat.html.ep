@@ -21,20 +21,26 @@
 
 %= javascript begin
 
+function refresh(data) {
+    $("#online_p").text(data['name']);
+    var $record = $("#record").val();
+    $("#record").val($record + data['msg']);
+}
+
+// long polling
 (function poll() {
   $.ajax({
     type: 'GET',
-    cache: false,
+    cache: false ,
     url: '/serv',
-    success: function(data) {
-            $("#online_p").text(data['name']);
-            var $record = $("#record").val();
-            $("#record").val($record + data['msg']);
-		    },
-    complete: poll,
-    timeout: 60000
+    success: refresh ,
+    complete: poll ,
+    timeout: 30000
   });
 })();
+
+//sync refresh
+$.getJSON('/serv', {sync : true}, refresh);
 
 function submit_msg(){
     if ($("#msg").val().match(/^$/)) {
