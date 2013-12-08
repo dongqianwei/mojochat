@@ -13,7 +13,6 @@
   <button id="submit_but" class="btn btn-default">登陆</button>
 </div>
 
-
 </body>
 
 %= javascript begin

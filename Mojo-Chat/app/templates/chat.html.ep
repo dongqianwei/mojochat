@@ -1,12 +1,12 @@
 % layout 'layout';
 
 <body>
-
-
   <div class="container">
   	<h3>欢迎使用mojochat, <%= $name %>童鞋,你可以开始聊天喽~ </h3>
     <label>当前在线：</label>
-    <p id="online_p"></p>
+    <ol class="breadcrumb" id="online">
+    </ol>
+
     <textarea rows="25" class="col-md-8" id="record"></textarea>
     <textarea class="col-md-8" id="msg"></textarea>
     <div class="col-md-8">
@@ -22,7 +22,22 @@
 %= javascript begin
 
 function refresh(data) {
-    $("#online_p").text(data['name']);
+    $("#online").empty();
+
+    $(data['name'].split(/\s+/)).each(function(){
+        var name = this;
+        $("#online").append('<li><a href="javascript:void(0)">' + name +'</a></li>');
+    });
+
+    $("#online").find("a").each(function(){
+        $(this).click(
+            function() {
+                alert('todo: 向' + $(this).text() + '发送消息的表单');
+                return false
+            }
+            )
+    });
+
     var $record = $("#record").val();
     $("#record").val($record + data['msg']);
 }
@@ -48,7 +63,7 @@ function submit_msg(){
       return;
     }
 
-	$.getJSON('/msg',{msg: $("#msg").val()});
+	$.getJSON('/broadcast_msg',{msg: $("#msg").val()});
 	$("#msg").val('');
 }
 

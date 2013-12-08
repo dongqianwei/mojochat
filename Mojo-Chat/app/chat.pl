@@ -1,10 +1,12 @@
 use v5.16;
 use Mojolicious::Lite;
 use Sync;
+use MsgBox;
 
 my %online;
 my %online_rec;
 my $sync = Sync->new;
+my $msgbox = MsgBox->new;
 
 get '/' => sub {
   my $self = shift;
@@ -17,6 +19,8 @@ get '/' => sub {
 get '/chat' => sub {
   my $self = shift;
   my $name = $self->param('name');
+
+  # first login
   if (not $self->session('name')) {
   	$self->session(name => $name);
   	#first time login
@@ -76,7 +80,28 @@ get 'serv' => sub {
     }
 };
 
-get '/msg' => sub {
+# 注册信箱回调
+get 'msgbox' => sub {
+    my $self = shift;
+    my $name = $self->param('name');
+    $self->render_later;
+
+    $msgbox->once($name.'_msg_event', sub {
+        my ($self, $msg) = @_;
+        $self->render(json => {msg => $msg});
+    });
+};
+
+# 发送私信
+get 'msg' => sub {
+    my $self = shift;
+    my ($from, $recv, $msg) = @{$self->session}{qw/from recv msg/};
+    $msgbox->send_msg($recv, "$msg from $from");
+    $self->render(json => 'succ');
+};
+
+# 发送广播消息
+get '/broadcast_msg' => sub {
 	my $self = shift;
 	my $name = $self->session('name');
 	my $msg = $self->param('msg') . " from $name\n";
@@ -119,14 +144,15 @@ sub refresh {
   	if ($online_rec{$name} == 0) {
   		delete $online_rec{$name};
   		delete $online{$name};
+        $sync->trigger;
   	}
   }
 }
 
-#十秒钟减一次计数
+#每10s减一次计数
 Mojo::IOLoop->recurring(10 => \&refresh);
 
-#每10触发一次同步事件
+#每10s触发一次同步事件
 Mojo::IOLoop->recurring(10 => sub {app->log->debug('sync once');$sync->trigger});
 
 app->start;
