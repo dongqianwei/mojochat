@@ -83,22 +83,25 @@ get 'serv' => sub {
 };
 
 # 注册信箱回调
-get 'msgbox' => sub {
+get '/msgbox' => sub {
     my $self = shift;
     my $name = $self->param('name');
     $self->render_later;
 
     $msgbox->once($name.'_msg_event', sub {
         my ($self, $msg) = @_;
+        app->log->debug("$name 's msgbox get a msg: $msg");
         $self->render(json => {msg => $msg});
     });
 };
 
 # 发送私信
-get 'msg' => sub {
+get '/msg' => sub {
     my $self = shift;
-    my ($from, $recv, $msg) = @{$self->session}{qw/from recv msg/};
-    $msgbox->send_msg($recv, "$msg from $from");
+    my $name = $self->session('name');
+    my ($to, $msg) = $self->param(['to', 'msg']);
+    app->log->debug("$name send $msg to $to");
+    $msgbox->send_msg($to, "$name:$msg");
     $self->render(json => 'succ');
 };
 

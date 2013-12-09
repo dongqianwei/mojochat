@@ -4,10 +4,10 @@
   <div class="container">
   	<h3>欢迎使用mojochat, <%= $name %>童鞋,你可以开始聊天喽~ </h3>
     <label>当前在线：</label>
-    <ol class="breadcrumb" id="online">
+    <ol class="nav nav-tabs" id="online">
     </ol>
 
-    <textarea rows="25" class="col-md-8" id="record"></textarea>
+    <textarea style="border-top-style:none" rows="25" class="col-md-8" readonly="true" id="record"></textarea>
     <textarea class="col-md-8" id="msg"></textarea>
     <div class="col-md-8">
 		<button class="btn btn-default" id="send">发送</button>
@@ -15,26 +15,27 @@
 		<button class="btn btn-default" id="leave">退出聊天</button>
 	</div>
   </div>
-
-
 </body>
 
 %= javascript begin
 
+var active_idx = 0;
 function refresh(data) {
-    $("#online").empty();
-
+    $("#online").empty().append('<li class="chatroom"><a href="javascript:void(0)">聊天室</a></li>');;
     $(data['name'].split(/\s+/)).each(function(){
         var name = this;
         $("#online").append('<li><a href="javascript:void(0)">' + name +'</a></li>');
     });
 
-    $("#online").find("a").each(function(){
+    $("#online").find("li").eq(active_idx).addClass("active");
+
+    $("#online").find("li").each(function(index){
         $(this).click(
-            function() {
-                alert('todo: 向' + $(this).text() + '发送消息的表单');
-                return false
-            }
+                function(){
+                    $("#online").find("li.active").eq(0).removeClass('active');
+                    active_idx = index;
+                    $("#online").find("li").eq(active_idx).addClass("active");
+                }
             )
     });
 
@@ -42,13 +43,29 @@ function refresh(data) {
     $("#record").val($record + data['msg']);
 }
 
-// long polling
+// long polling serv
 (function poll() {
   $.ajax({
     type: 'GET',
     cache: false ,
     url: '/serv',
     success: refresh ,
+    complete: poll ,
+    timeout: 30000
+  });
+})();
+
+function pullMsgBox (data) {
+    console.log(data['msg']);
+}
+
+// long polling msgbox
+(function poll() {
+  $.ajax({
+    type: 'GET',
+    cache: false ,
+    url: '/msgbox',
+    success: pullMsgBox ,
     complete: poll ,
     timeout: 30000
   });
@@ -62,8 +79,12 @@ function submit_msg(){
       alert('消息不能为空咯');
       return;
     }
-
-	$.getJSON('/broadcast_msg',{msg: $("#msg").val()});
+    if ($("#online").find("li.active").hasClass("chatroom")) {
+	    $.getJSON('/broadcast_msg',{msg: $("#msg").val()});
+    }
+    else {
+        $.getJSON('/msg',{to: $("#online").find("li.active").text() ,msg: $("#msg").val()});
+    }
 	$("#msg").val('');
 }
 
