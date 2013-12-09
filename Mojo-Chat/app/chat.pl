@@ -4,7 +4,6 @@ use Sync;
 use MsgBox;
 
 my %online;
-my %online_rec;
 my $sync = Sync->new;
 my $msgbox = MsgBox->new;
 
@@ -22,22 +21,23 @@ get '/chat' => sub {
 
   # first login
   if (not $self->session('name')) {
+    app->log->debug("first login, name is $name");
   	$self->session(name => $name);
   	#first time login
   	#init msg queue
   	$online{$name} = {msgq => []};
   	#init 计数
-  	$online_rec{$name} = 6;
+  	$online{$name}{count} = 6;
     #触发同步事件
     $sync->trigger;
   }
   elsif ($name ne $self->session('name')) {
+    app->log->debug("login with different name");
   	#session exists
   	#name changed
   	my $ori_name = $self->session('name');
     $self->session(name => $name);
     $online{$name} = delete $online{$ori_name};
-    $online_rec{$name} = delete $online_rec{$ori_name};
     #触发同步事件
     $sync->trigger;
   }
@@ -48,7 +48,7 @@ get 'serv' => sub {
 	my $self = shift;
 	my $name = $self->session('name');
 	#刷新计数
-	$online_rec{$name} = 6;
+	$online{$name}{count} = 6;
 
     # sync
     if ($self->param('sync')) {
@@ -67,7 +67,9 @@ get 'serv' => sub {
 
         #注册事件，执行一次后销毁
         my $id; $id = $sync->once(sync => sub {
-            app->log->debug("an callback called");
+            my $name = $self->session('name');
+            return unless defined $online{$name};
+            app->log->debug("an callback called. name is $name");
             #获取在线人数
             my @names = keys %online;
             #将消息队列刷新
@@ -124,6 +126,7 @@ get 'query' => sub {
     }
 };
 
+# change status on server
 post '/cmd' => sub {
 	my $self = shift;
 	my $cmd = $self->param('cmd');
@@ -131,7 +134,6 @@ post '/cmd' => sub {
 		my $name = $self->session('name');
 		#clear session and user data
 		$self->session(expires => 1);
-  		delete $online_rec{$name};
   		delete $online{$name};
   		$self->render(json => 'succ');
 	}
@@ -139,10 +141,9 @@ post '/cmd' => sub {
 
 # 定时减计数
 sub refresh {
-  for my $name (keys %online_rec) {
-  	$online_rec{$name} --;
-  	if ($online_rec{$name} == 0) {
-  		delete $online_rec{$name};
+  for my $name (keys %online) {
+  	$online{$name}{count} --;
+  	if ($online{$name}{count} == 0) {
   		delete $online{$name};
         $sync->trigger;
   	}
