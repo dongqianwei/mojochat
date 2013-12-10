@@ -85,13 +85,17 @@ get 'serv' => sub {
 # 注册信箱回调
 get '/msgbox' => sub {
     my $self = shift;
-    my $name = $self->param('name');
+    my $name = $self->session('name');
     $self->render_later;
 
-    $msgbox->once($name.'_msg_event', sub {
-        my ($self, $msg) = @_;
-        app->log->debug("$name 's msgbox get a msg: $msg");
-        $self->render(json => {msg => $msg});
+    app->log->debug("msgbox add an callback on event: " . $name.'_msg_event');
+
+    $msgbox->once($name.'_msg_event' => sub {
+        my ($box, $msg) = @_;
+        app->log->debug("${name}'s msgbox get a msg: $msg");
+	eval {
+	  $self->render(json => {msg => $msg});
+	}
     });
 };
 

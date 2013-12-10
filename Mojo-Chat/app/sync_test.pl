@@ -1,13 +1,11 @@
 use v5.18;
-use Mojolicious;
 use Sync;
+$|++;
 
 my $sync = Sync->new;
-$sync->on(sync =>sub {say 'triggered he'});
-$sync->on(sync =>sub {say 'triggered she'; Mojo::IOLoop->stop});
+$sync->once(sync =>sub {say 'triggered he once'});
+$sync->on(sync =>sub {say 'triggered she'});
 
 $sync->trigger;
 
-Mojo::IOLoop->start;
-say 'the end';
-<>;
+$sync->trigger;

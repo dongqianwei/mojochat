@@ -56,7 +56,9 @@ function refresh(data) {
 })();
 
 function pullMsgBox (data) {
-    console.log(data['msg']);
+    if (data['msg']) {
+        alert(data['msg'].replace(':', ' send '));
+    }
 }
 
 // long polling msgbox
