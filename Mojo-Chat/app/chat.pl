@@ -90,7 +90,7 @@ get '/msgbox' => sub {
 
     app->log->debug("msgbox add an callback on event: " . $name.'_msg_event');
 
-    $msgbox->once($name.'_msg_event' => sub {
+    $msgbox->register($name, sub {
         my ($box, $msg) = @_;
         app->log->debug("${name}'s msgbox get a msg: $msg");
 	eval {
@@ -160,7 +160,7 @@ sub refresh {
 #每10s减一次计数
 Mojo::IOLoop->recurring(10 => \&refresh);
 
-#每10s触发一次同步事件
+#每10s触发一次同步广播事件
 Mojo::IOLoop->recurring(10 => sub {app->log->debug('sync once');$sync->trigger});
 
 app->start;
