@@ -19,28 +19,39 @@
 
 %= javascript begin
 
-var active_idx = 0;
+//msg buffer
+var msgBuf = {room : '',};
+
+//current active tab index
+var active_name = 'room';
+
+function showMsg () {
+   console.log("show msg" + msgBuf[active_name]);
+   $("#record").val(msgBuf[active_name]);
+}
+
 function refresh(data) {
-    $("#online").empty().append('<li class="chatroom"><a href="javascript:void(0)">聊天室</a></li>');;
+    $("#online").empty().append('<li data-name="room" class="chatroom"><a href="javascript:void(0)">聊天室</a></li>');;
     $(data['name'].split(/\s+/)).each(function(){
         var name = this;
-        $("#online").append('<li><a href="javascript:void(0)">' + name +'</a></li>');
+        $("#online").append('<li data-name="' + name + '"><a href="javascript:void(0)">' + name +'</a></li>');
     });
 
-    $("#online").find("li").eq(active_idx).addClass("active");
+    $("#online").find("li[data-name=" + active_name + "]").addClass("active");
 
-    $("#online").find("li").each(function(index){
+    $("#online").find("li").each(function(){
         $(this).click(
                 function(){
-                    $("#online").find("li.active").eq(0).removeClass('active');
-                    active_idx = index;
-                    $("#online").find("li").eq(active_idx).addClass("active");
+                    $("#online").find("li.active").removeClass('active');
+		    console.log($(this).attr('data-name'));
+                    active_name = $(this).attr('data-name');
+                    $("#online").find("li[data-name=" + active_name + "]").addClass("active");
+		    showMsg();
                 }
             )
     });
-
-    var $record = $("#record").val();
-    $("#record").val($record + data['msg']);
+    msgBuf['room'] += data['msg'];
+    showMsg();
 }
 
 // long polling serv
@@ -57,7 +68,14 @@ function refresh(data) {
 
 function pullMsgBox (data) {
     if (data['msg']) {
-        alert(data['msg'].replace(':', ' send '));
+        var msg = data['msg'].split(':');
+	
+	if (msgBuf[msg[0]] == undefined) {
+	  msgBuf[msg[0]] = '';
+	}
+	
+        msgBuf[msg[0]] += msg[1] + "\n";
+	showMsg();
     }
 }
 
@@ -87,7 +105,7 @@ function submit_msg(){
     else {
         $.getJSON('/msg',{to: $("#online").find("li.active").text() ,msg: $("#msg").val()});
     }
-	$("#msg").val('');
+    $("#msg").val('');
 }
 
 function quit() {
@@ -96,7 +114,7 @@ function quit() {
 
 $("#send").click(submit_msg);
 
-$("#clr").click(function(){$("#record").val('')});
+$("#clr").click(function(){$("#record").val(''); msgBuf[active_name] = ''});
 
 $("#leave").click(quit);
 
