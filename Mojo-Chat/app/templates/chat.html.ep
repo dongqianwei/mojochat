@@ -50,7 +50,7 @@ function refresh(data) {
                 }
             )
     });
-    msgBuf['room'] += data['msg'];
+    msgBuf['room'] += data['msg'].replace(':', ' FROM ');
     showMsg();
 }
 
@@ -74,7 +74,7 @@ function pullMsgBox (data) {
 	  msgBuf[msg[0]] = '';
 	}
 	
-        msgBuf[msg[0]] += msg[1] + "\n";
+        msgBuf[msg[0]] += "<<:" + msg[1] + "\n";
 	showMsg();
     }
 }
@@ -103,7 +103,11 @@ function submit_msg(){
 	    $.getJSON('/broadcast_msg',{msg: $("#msg").val()});
     }
     else {
+        msgBuf[active_name] == undefined ? msgBuf[active_name] = '' : '';
+	
+	msgBuf[active_name] += ">>:" + $("#msg").val() + "\n";
         $.getJSON('/msg',{to: $("#online").find("li.active").text() ,msg: $("#msg").val()});
+	showMsg();
     }
     $("#msg").val('');
 }

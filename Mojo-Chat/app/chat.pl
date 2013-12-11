@@ -113,7 +113,7 @@ get '/msg' => sub {
 get '/broadcast_msg' => sub {
 	my $self = shift;
 	my $name = $self->session('name');
-	my $msg = $self->param('msg') . " from $name\n";
+	my $msg = $self->param('msg') . ":$name";
 	#将msg添加到所有人的消息队列中
 	for my $name (keys %online) {
 		push @{$online{$name}{msgq}}, $msg;
