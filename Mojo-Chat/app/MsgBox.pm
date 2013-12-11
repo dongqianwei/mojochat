@@ -24,4 +24,9 @@ sub send_msg {
     $self->emit($to.'_msg_event' => $msg);
 }
 
+sub broadcast {
+    my $self = shift;
+    $self->emit('sync');
+}
+
 1;

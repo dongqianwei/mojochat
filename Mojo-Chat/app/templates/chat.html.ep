@@ -50,8 +50,11 @@ function refresh(data) {
                 }
             )
     });
-    msgBuf['room'] += data['msg'].replace(':', ' FROM ');
-    showMsg();
+    
+    if (data['msg']) {
+      msgBuf['room'] += data['msg'].replace(':', ' FROM ') + "\n";
+      showMsg();
+    }
 }
 
 // long polling serv

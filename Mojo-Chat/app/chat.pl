@@ -4,7 +4,6 @@ use Sync;
 use MsgBox;
 
 my %online;
-my $sync = Sync->new;
 my $msgbox = MsgBox->new;
 
 get '/' => sub {
@@ -29,7 +28,7 @@ get '/chat' => sub {
   	#init 计数
   	$online{$name}{count} = 6;
     #触发同步事件
-    $sync->trigger;
+    $msgbox->broadcast;
   }
   elsif ($name ne $self->session('name')) {
     app->log->debug("login with different name");
@@ -39,7 +38,7 @@ get '/chat' => sub {
     $self->session(name => $name);
     $online{$name} = delete $online{$ori_name};
     #触发同步事件
-    $sync->trigger;
+    $msgbox->broadcast;
   }
   $self->stash(name => $name);
 };
@@ -66,7 +65,7 @@ get 'serv' => sub {
         $self->render_later;
 
         #注册事件，执行一次后销毁
-        my $id; $id = $sync->once(sync => sub {
+        my $id; $id = $msgbox->once(sync => sub {
             my $name = $self->session('name');
             return unless defined $online{$name};
             app->log->debug("an callback called. name is $name");
@@ -119,8 +118,8 @@ get '/broadcast_msg' => sub {
 		push @{$online{$name}{msgq}}, $msg;
 	}
     #触发同步事件
-    $sync->trigger;
-	$self->render(json => 'succ');
+    $msgbox->broadcast;
+    $self->render(json => 'succ');
 };
 
 get 'query' => sub {
@@ -152,7 +151,7 @@ sub refresh {
   	$online{$name}{count} --;
   	if ($online{$name}{count} == 0) {
   		delete $online{$name};
-        $sync->trigger;
+        $msgbox->broadcast;
   	}
   }
 }
@@ -161,6 +160,6 @@ sub refresh {
 Mojo::IOLoop->recurring(10 => \&refresh);
 
 #每10s触发一次同步广播事件
-Mojo::IOLoop->recurring(10 => sub {app->log->debug('sync once');$sync->trigger});
+Mojo::IOLoop->recurring(10 => sub {app->log->debug('sync once');$msgbox->broadcast});
 
 app->start;
