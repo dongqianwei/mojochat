@@ -13,6 +13,7 @@ get '/' => sub {
   }
 } => 'login';
 
+# 用户登录
 get '/chat' => sub {
   my $self = shift;
   my $name = $self->param('name');
@@ -20,33 +21,37 @@ get '/chat' => sub {
   # first login
   if (not $self->session('name')) {
     app->log->debug("first login, name is $name");
-  	$self->session(name => $name);
-  	#first time login
-  	#init msg queue
-  	$online{$name} = {msgq => []};
-  	#init 计数
-  	$online{$name}{count} = 6;
+    $self->session(name => $name);
+    #first time login
+    #init msg queue
+    $online{$name} = {msgq => []};
+    #init 计数
+    $online{$name}{count} = 6;
     #触发同步事件
+    #更新在线用户信息
     $msgbox->broadcast;
   }
+  #用户修改昵称（暂时不会出现改场景）
   elsif ($name ne $self->session('name')) {
     app->log->debug("login with different name");
-  	#session exists
-  	#name changed
-  	my $ori_name = $self->session('name');
+    #session exists
+    #name changed
+    my $ori_name = $self->session('name');
     $self->session(name => $name);
     $online{$name} = delete $online{$ori_name};
     #触发同步事件
+    #更新在线用户信息
     $msgbox->broadcast;
   }
   $self->stash(name => $name);
 };
 
+# 在线用户与广播消息刷新
 get 'serv' => sub {
-	my $self = shift;
-	my $name = $self->session('name');
-	#刷新计数
-	$online{$name}{count} = 6;
+    my $self = shift;
+    my $name = $self->session('name');
+    #刷新计数
+    $online{$name}{count} = 6;
 
     # sync
     if ($self->param('sync')) {
@@ -61,22 +66,23 @@ get 'serv' => sub {
     }
     # async
     else {
-        $self->render_later;
+      $self->render_later;
 
-        #注册事件，执行一次后销毁
-        $msgbox->once(sync => sub {
-            my $name = $self->session('name');
-            return unless defined $online{$name};
-            app->log->debug("an callback called. name is $name");
-            #获取在线人数
-            my @names = keys %online;
-            #将消息队列刷新
-            my @msgs = @{$online{$name}{msgq} // []};
-            $online{$name}{msgq} = [];
-            eval {
-                $self->render(json => {name => "@names", msg => "@msgs"});
-            }
-        });
+      #注册事件，执行一次后销毁
+      $msgbox->once(sync => sub {
+	  my $name = $self->session('name');
+	  # 如果用户已经不存在了,直接退出
+	  return unless defined $online{$name};
+	  app->log->debug("an callback called. name is $name");
+	  #获取在线人数
+	  my @names = keys %online;
+	  #将消息队列刷新
+	  my @msgs = @{$online{$name}{msgq} // []};
+	  $online{$name}{msgq} = [];
+	  eval {
+	      $self->render(json => {name => "@names", msg => "@msgs"});
+	  }
+      });
     }
 };
 
@@ -109,18 +115,19 @@ get '/msg' => sub {
 
 # 发送广播消息
 get '/broadcast_msg' => sub {
-	my $self = shift;
-	my $name = $self->session('name');
-	my $msg = $self->param('msg') . ":$name";
-	#将msg添加到所有人的消息队列中
-	for my $name (keys %online) {
-		push @{$online{$name}{msgq}}, $msg;
-	}
+    my $self = shift;
+    my $name = $self->session('name');
+    my $msg = $self->param('msg') . ":$name";
+    #将msg添加到所有人的消息队列中
+    for my $name (keys %online) {
+        push @{$online{$name}{msgq}}, $msg;
+    }
     #触发同步事件
     $msgbox->broadcast;
     $self->render(json => 'succ');
 };
 
+# 查询昵称是否存在
 get 'query' => sub {
     my $self = shift;
     my $query = $self->param('query');
@@ -132,26 +139,28 @@ get 'query' => sub {
 };
 
 # change status on server
+# 主动退出
 post '/cmd' => sub {
-	my $self = shift;
-	my $cmd = $self->param('cmd');
-	if ($cmd eq 'quit') {
-		my $name = $self->session('name');
-		#clear session and user data
-		$self->session(expires => 1);
-  		delete $online{$name};
-  		$self->render(json => 'succ');
-	}
+  my $self = shift;
+  my $cmd = $self->param('cmd');
+  if ($cmd eq 'quit') {
+    my $name = $self->session('name');
+    #clear session and user data
+    $self->session(expires => 1);
+    delete $online{$name};
+    $self->render(json => 'succ');
+  }
 };
 
 # 定时减计数
 sub refresh {
   for my $name (keys %online) {
-  	$online{$name}{count} --;
-  	if ($online{$name}{count} == 0) {
-  		delete $online{$name};
-        $msgbox->broadcast;
-  	}
+    $online{$name}{count} --;
+    # 计数减为0时认为用户离线
+    if ($online{$name}{count} == 0) {
+      delete $online{$name};
+      $msgbox->broadcast;
+    }
   }
 }
 
