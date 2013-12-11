@@ -12,7 +12,7 @@ sub register {
         say for @{$self->subscribers($recv.'_msg_event')};
         if ( grep {$_ eq $cb_once} @{$self->subscribers($recv.'_msg_event')} ) {
             say 'msgbox callback timout, so called';
-            $cb_once->('');
+            $self->$cb_once('');
         }
     });
 }
