@@ -1,6 +1,5 @@
 use v5.16;
 use Mojolicious::Lite;
-use Sync;
 use MsgBox;
 
 my %online;
@@ -65,7 +64,7 @@ get 'serv' => sub {
         $self->render_later;
 
         #注册事件，执行一次后销毁
-        my $id; $id = $msgbox->once(sync => sub {
+        $msgbox->once(sync => sub {
             my $name = $self->session('name');
             return unless defined $online{$name};
             app->log->debug("an callback called. name is $name");

@@ -25,23 +25,38 @@ var msgBuf = {room : '',};
 //current active tab index
 var active_name = 'room';
 
+//msg unread
+var active_tab = {};
+
 function showMsg () {
-   console.log("show msg" + msgBuf[active_name]);
-   $("#record").val(msgBuf[active_name]);
+    for (var name in active_tab) {
+      $("#online").find("li[data-name=" + name + "]").addClass('btn-warning');
+    }
+    $("#record").val(msgBuf[active_name]);
 }
 
 function refresh(data) {
     $("#online").empty().append('<li data-name="room" class="chatroom"><a href="javascript:void(0)">聊天室</a></li>');;
+    
+    //add tab
     $(data['name'].split(/\s+/)).each(function(){
         var name = this;
         $("#online").append('<li data-name="' + name + '"><a href="javascript:void(0)">' + name +'</a></li>');
     });
+    
+    for (var name in active_tab) {
+      $("#online").find("li[data-name=" + name + "]").addClass('btn-warning');
+    }
 
     $("#online").find("li[data-name=" + active_name + "]").addClass("active");
 
     $("#online").find("li").each(function(){
         $(this).click(
                 function(){
+		    //remove from active_tab
+		    $(this).removeClass("btn-warning");
+		    delete active_tab[$(this).attr('data-name')];
+		    
                     $("#online").find("li.active").removeClass('active');
 		    console.log($(this).attr('data-name'));
                     active_name = $(this).attr('data-name');
@@ -51,7 +66,13 @@ function refresh(data) {
             )
     });
     
+    //chat room receive msg
     if (data['msg']) {
+    
+      //marked as active if room is not selected
+      if (active_name != 'room') {
+        active_tab['room'] = 1;
+      }
       msgBuf['room'] += data['msg'].replace(':', ' FROM ') + "\n";
       showMsg();
     }
@@ -70,11 +91,17 @@ function refresh(data) {
 })();
 
 function pullMsgBox (data) {
+    // msgBox get an msg
     if (data['msg']) {
         var msg = data['msg'].split(':');
 	
 	if (msgBuf[msg[0]] == undefined) {
 	  msgBuf[msg[0]] = '';
+	}
+	
+	// if current msgbox not selected, marked as active
+	if (active_name != msg[0]) {
+	  active_tab[msg[0]] = 1;
 	}
 	
         msgBuf[msg[0]] += "<<:" + msg[1] + "\n";
