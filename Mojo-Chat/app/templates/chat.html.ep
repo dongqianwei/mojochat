@@ -152,4 +152,10 @@ $("#clr").click(function(){$("#record").val(''); msgBuf[active_name] = ''});
 
 $("#leave").click(quit);
 
+$("#msg").keypress(function(e){
+  if(e.charCode == 13 && e.ctrlKey == false) {
+    $("#send").click();
+  }
+})
+
 % end
